@@ -8,7 +8,7 @@ static final String DEFAULT_SEND_COMMAND = "/tts"
 // ================================================
 
 // ====== 头像缓存与加载 ======
-static java.util.concurrent.atomic.AtomicReference<String> sAvatarDir = new java.util.concurrent.atomic.AtomicReference<>(null);
+static final String[] sAvatarDir = new String[]{null};
 final Map<String, android.graphics.Bitmap> avatarCache = new java.util.LinkedHashMap<String, android.graphics.Bitmap>() {
     @Override
     protected boolean removeEldestEntry(Map.Entry<String, android.graphics.Bitmap> eldest) {
@@ -17,7 +17,7 @@ final Map<String, android.graphics.Bitmap> avatarCache = new java.util.LinkedHas
 };
 
 void initAvatarDir() {
-    if (sAvatarDir.get() != null) return;
+    if (sAvatarDir[0] != null) return;
     try {
         java.io.File mmf = new java.io.File("/data/data/com.tencent.mm/MicroMsg");
         if (mmf.exists() && mmf.isDirectory()) {
@@ -26,18 +26,18 @@ void initAvatarDir() {
                 for (java.io.File sub : subs) {
                     java.io.File avd = new java.io.File(sub, "avatar");
                     if (avd.exists() && avd.isDirectory()) {
-                        sAvatarDir.set(avd.getAbsolutePath());
+                        sAvatarDir[0] = avd.getAbsolutePath();
                         break;
                     }
                 }
             }
         }
     } catch (Exception e) { }
-    log("[TTS] 头像目录: " + (sAvatarDir.get() != null ? sAvatarDir.get() : "未找到"));
+    log("[TTS] 头像目录: " + (sAvatarDir[0] != null ? sAvatarDir[0] : "未找到"));
 }
 
 String getAvatarFilePath(String wxid) {
-    String dir = sAvatarDir.get();
+    String dir = sAvatarDir[0];
     if (dir == null) return null;
     String[] exts = {".jpg", ".png", "_hd.jpg", "_hd.png", ".jpeg", ".webp"};
     for (String ext : exts) {
