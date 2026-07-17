@@ -1040,6 +1040,34 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
         // 初始化头像目录
         initAvatarDir();
         
+        // 预加载所有头像（在 getView 之前，避免 BeanShell 在回调中 new File 崩溃）
+        final Map<String, android.graphics.Bitmap> preloadedAvatars = new java.util.HashMap<>();
+        for (int i = 0; i < count; i++) {
+            try {
+                android.graphics.Bitmap bm = null;
+                Object contact = contactArray[i];
+                String id = idArray[i];
+                try {
+                    java.lang.reflect.Method m = contact.getClass().getMethod("getAvatar");
+                    Object result = m.invoke(contact);
+                    if (result instanceof android.graphics.Bitmap) bm = (android.graphics.Bitmap) result;
+                } catch (Exception e1) {
+                    try {
+                        java.lang.reflect.Method m = contact.getClass().getMethod("getAvatarBitmap");
+                        Object result = m.invoke(contact);
+                        if (result instanceof android.graphics.Bitmap) bm = (android.graphics.Bitmap) result;
+                    } catch (Exception e2) {}
+                }
+                if (bm == null) {
+                    String path = getAvatarFilePath(id);
+                    if (path != null) bm = android.graphics.BitmapFactory.decodeFile(path);
+                }
+                if (bm != null) {
+                    preloadedAvatars.put(id, getCircularBitmap(bm));
+                }
+            } catch (Exception e) { }
+        }
+        
         // ---- 自定义适配器：头像 + 名称 + 复选框 ----
         final float density = ctx.getResources().getDisplayMetrics().density;
         final int avatarDp = (int)(40 * density + 0.5f);
@@ -1087,7 +1115,12 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
                 textView.setChecked(listView.isItemChecked(pos));
                 textView.setTextColor(textColor);
                 
-                loadItemAvatar(avatarView, idArray[pos], contactArray[pos]);
+                String id = idArray[pos];
+                if (preloadedAvatars.containsKey(id)) {
+                    avatarView.setImageBitmap(preloadedAvatars.get(id));
+                } else {
+                    avatarView.setImageResource(android.R.drawable.ic_menu_help);
+                }
                 
                 return row;
             }
@@ -1290,7 +1323,12 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
                         tv.setText(newDisplay[pos]);
                         tv.setChecked(listView.isItemChecked(pos));
                         tv.setTextColor(textColor);
-                        loadItemAvatar(avatarView, newIds[pos], newContacts[pos]);
+                        String nid = newIds[pos];
+                        if (preloadedAvatars.containsKey(nid)) {
+                            avatarView.setImageBitmap(preloadedAvatars.get(nid));
+                        } else {
+                            avatarView.setImageResource(android.R.drawable.ic_menu_help);
+                        }
                         return row;
                     }
                 };
