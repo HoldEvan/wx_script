@@ -7,6 +7,114 @@ static final String DEFAULT_OPEN_COMMAND = "/TTS"
 static final String DEFAULT_SEND_COMMAND = "/tts"
 // ================================================
 
+// ====== 头像缓存与加载 ======
+static java.util.concurrent.atomic.AtomicReference<String> sAvatarDir = new java.util.concurrent.atomic.AtomicReference<>(null);
+final Map<String, android.graphics.Bitmap> avatarCache = new java.util.LinkedHashMap<String, android.graphics.Bitmap>() {
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<String, android.graphics.Bitmap> eldest) {
+        return size() > 80;
+    }
+};
+
+void initAvatarDir() {
+    if (sAvatarDir.get() != null) return;
+    try {
+        java.io.File mmf = new java.io.File("/data/data/com.tencent.mm/MicroMsg");
+        if (mmf.exists() && mmf.isDirectory()) {
+            java.io.File[] subs = mmf.listFiles();
+            if (subs != null) {
+                for (java.io.File sub : subs) {
+                    java.io.File avd = new java.io.File(sub, "avatar");
+                    if (avd.exists() && avd.isDirectory()) {
+                        sAvatarDir.set(avd.getAbsolutePath());
+                        break;
+                    }
+                }
+            }
+        }
+    } catch (Exception e) { }
+    log("[TTS] 头像目录: " + (sAvatarDir.get() != null ? sAvatarDir.get() : "未找到"));
+}
+
+String getAvatarFilePath(String wxid) {
+    String dir = sAvatarDir.get();
+    if (dir == null) return null;
+    String[] exts = {".jpg", ".png", "_hd.jpg", "_hd.png", ".jpeg", ".webp"};
+    for (String ext : exts) {
+        java.io.File f = new java.io.File(dir, wxid + ext);
+        if (f.exists()) return f.getAbsolutePath();
+    }
+    return null;
+}
+
+android.graphics.Bitmap getCircularBitmap(android.graphics.Bitmap source) {
+    int size = Math.min(source.getWidth(), source.getHeight());
+    int x = (source.getWidth() - size) / 2;
+    int y = (source.getHeight() - size) / 2;
+    android.graphics.Bitmap squared = android.graphics.Bitmap.createBitmap(source, x, y, size, size);
+    if (squared != source) source.recycle();
+    android.graphics.Bitmap output = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
+    android.graphics.Canvas canvas = new android.graphics.Canvas(output);
+    android.graphics.Paint paint = new android.graphics.Paint();
+    android.graphics.Rect rect = new android.graphics.Rect(0, 0, size, size);
+    paint.setAntiAlias(true);
+    canvas.drawARGB(0, 0, 0, 0);
+    canvas.drawCircle(size / 2, size / 2, size / 2, paint);
+    paint.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN));
+    canvas.drawBitmap(squared, rect, rect, paint);
+    squared.recycle();
+    return output;
+}
+
+void loadItemAvatar(final android.widget.ImageView imageView, final String wxid, final Object contact) {
+    if (avatarCache.containsKey(wxid)) {
+        imageView.setImageBitmap(avatarCache.get(wxid));
+        return;
+    }
+    imageView.setImageResource(android.R.drawable.ic_menu_help);
+    new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try {
+                android.graphics.Bitmap bm = null;
+                try {
+                    java.lang.reflect.Method m = contact.getClass().getMethod("getAvatar");
+                    Object result = m.invoke(contact);
+                    if (result instanceof android.graphics.Bitmap) {
+                        bm = (android.graphics.Bitmap) result;
+                    }
+                } catch (Exception e1) {
+                    try {
+                        java.lang.reflect.Method m = contact.getClass().getMethod("getAvatarBitmap");
+                        Object result = m.invoke(contact);
+                        if (result instanceof android.graphics.Bitmap) {
+                            bm = (android.graphics.Bitmap) result;
+                        }
+                    } catch (Exception e2) {}
+                }
+                if (bm == null) {
+                    initAvatarDir();
+                    String path = getAvatarFilePath(wxid);
+                    if (path != null) {
+                        bm = android.graphics.BitmapFactory.decodeFile(path);
+                    }
+                }
+                if (bm != null) {
+                    android.graphics.Bitmap circularBm = getCircularBitmap(bm);
+                    avatarCache.put(wxid, circularBm);
+                    final android.graphics.Bitmap finalBm = circularBm;
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            imageView.setImageBitmap(finalBm);
+                        }
+                    });
+                }
+            } catch (Exception e) { }
+        }
+    }).start();
+}
+
 // ====== 判断当前是否为深色模式 ======
 boolean isDarkMode(Context ctx) {
     int nightModeFlags = ctx.getResources().getConfiguration().uiMode 
@@ -656,7 +764,7 @@ LinearLayout createListSelectorRow(Context ctx, String title, String desc, Strin
 }
 
 // ====== 显示列表选择器（纯 LinearLayout + ScrollView，无适配器，无 lambda） ======
-// ====== 显示列表选择器对话框（终极稳定版：使用系统 ArrayAdapter，显示 名称 (ID)） ======
+// ====== 显示列表选择器对话框（自定义适配器：圆形头像 + 名称(ID) + 复选框） ======
 void showListSelector(Context ctx, String key, TextView selectedView, TextView titleView, Map<String, TextView> titleViewMap) {
     try {
         boolean isPrivate = key.startsWith("private");
@@ -672,6 +780,8 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
         // ---- 收集数据：显示文本 = 名称 + (ID) ----
         List<String> displayItems = new ArrayList();
         List<String> pureNames = new ArrayList();
+        List<String> itemIds = new ArrayList();
+        List<Object> itemContacts = new ArrayList();
         
         if (isPrivate) {
             var friends = getFriendList();
@@ -684,6 +794,8 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
                         String id = friend.getWxid();
                         if (name != null && !name.isEmpty() && id != null && !id.isEmpty()) {
                             pureNames.add(name);
+                            itemIds.add(id);
+                            itemContacts.add(friend);
                             displayItems.add(name + " (" + id + ")");
                         }
                     } catch (Exception e) { log("[TTS]获取好友信息失败：" + e.toString()); }
@@ -700,6 +812,8 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
                         String id = group.getRoomId();
                         if (name != null && !name.isEmpty() && id != null && !id.isEmpty()) {
                             pureNames.add(name);
+                            itemIds.add(id);
+                            itemContacts.add(group);
                             displayItems.add(name + " (" + id + ")");
                         }
                     } catch (Exception e) { log("[TTS]获取群聊信息失败：" + e.toString()); }
@@ -723,9 +837,13 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
         final int count = displayItems.size();
         final String[] displayArray = new String[count];
         final String[] nameArray = new String[count];
+        final String[] idArray = new String[count];
+        final Object[] contactArray = new Object[count];
         for (int i = 0; i < count; i++) {
             displayArray[i] = displayItems.get(i);
             nameArray[i] = pureNames.get(i);
+            idArray[i] = itemIds.get(i);
+            contactArray[i] = itemContacts.get(i);
         }
         
         boolean[] checked = new boolean[count];
@@ -919,8 +1037,62 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
         listView.setDividerHeight(0);
         listView.setSelector(android.R.drawable.list_selector_background);
         
-        // ---- 使用系统 ArrayAdapter，无自定义视图，绝对安全 ----
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ctx, android.R.layout.simple_list_item_multiple_choice, displayArray);
+        // 初始化头像目录
+        initAvatarDir();
+        
+        // ---- 自定义适配器：头像 + 名称 + 复选框 ----
+        final float density = ctx.getResources().getDisplayMetrics().density;
+        final int avatarDp = (int)(40 * density + 0.5f);
+        
+        android.widget.BaseAdapter adapter = new android.widget.BaseAdapter() {
+            @Override public int getCount() { return count; }
+            @Override public Object getItem(int pos) { return displayArray[pos]; }
+            @Override public long getItemId(int pos) { return pos; }
+            @Override
+            public android.view.View getView(int pos, android.view.View convertView, android.view.ViewGroup parent) {
+                android.widget.LinearLayout row;
+                android.widget.ImageView avatarView;
+                android.widget.CheckedTextView textView;
+                
+                if (convertView == null) {
+                    row = new android.widget.LinearLayout(ctx);
+                    row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                    row.setPadding((int)(12 * density), (int)(6 * density), (int)(12 * density), (int)(6 * density));
+                    
+                    avatarView = new android.widget.ImageView(ctx);
+                    avatarView.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+                    android.widget.LinearLayout.LayoutParams avParams = new android.widget.LinearLayout.LayoutParams(avatarDp, avatarDp);
+                    avParams.rightMargin = (int)(12 * density);
+                    avatarView.setLayoutParams(avParams);
+                    avatarView.setId(View.generateViewId());
+                    row.addView(avatarView);
+                    
+                    textView = new android.widget.CheckedTextView(ctx);
+                    textView.setTextSize(15);
+                    textView.setPadding((int)(8 * density), 0, 0, 0);
+                    textView.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+                        0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                    row.addView(textView);
+                    
+                    row.setTag(new Object[]{avatarView, textView});
+                } else {
+                    row = (android.widget.LinearLayout) convertView;
+                    Object[] tags = (Object[]) row.getTag();
+                    avatarView = (android.widget.ImageView) tags[0];
+                    textView = (android.widget.CheckedTextView) tags[1];
+                }
+                
+                textView.setText(displayArray[pos]);
+                textView.setChecked(listView.isItemChecked(pos));
+                textView.setTextColor(textColor);
+                
+                loadItemAvatar(avatarView, idArray[pos], contactArray[pos]);
+                
+                return row;
+            }
+        };
+        
         listView.setAdapter(adapter);
         for (int i = 0; i < finalChecked.length; i++) {
             listView.setItemChecked(i, finalChecked[i]);
@@ -1063,19 +1235,66 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
                 String keyword = searchEdit.getText().toString().trim().toLowerCase();
                 List<String> filteredDisplay = new ArrayList();
                 List<String> filteredNames = new ArrayList();
+                List<String> filteredIds = new ArrayList();
+                List<Object> filteredContacts = new ArrayList();
                 for (int i = 0; i < displayArray.length; i++) {
                     if (keyword.isEmpty() || displayArray[i].toLowerCase().contains(keyword)) {
                         filteredDisplay.add(displayArray[i]);
                         filteredNames.add(nameArray[i]);
+                        filteredIds.add(idArray[i]);
+                        filteredContacts.add(contactArray[i]);
                     }
                 }
-                String[] newDisplay = new String[filteredDisplay.size()];
+                final int fCount = filteredDisplay.size();
+                final String[] newDisplay = new String[fCount];
                 filteredDisplay.toArray(newDisplay);
-                final String[] newNames = new String[filteredNames.size()];
+                final String[] newNames = new String[fCount];
                 filteredNames.toArray(newNames);
-                ArrayAdapter<String> newAdapter = new ArrayAdapter<String>(ctx, android.R.layout.simple_list_item_multiple_choice, newDisplay);
+                final String[] newIds = new String[fCount];
+                filteredIds.toArray(newIds);
+                final Object[] newContacts = new Object[fCount];
+                filteredContacts.toArray(newContacts);
+                
+                android.widget.BaseAdapter newAdapter = new android.widget.BaseAdapter() {
+                    @Override public int getCount() { return fCount; }
+                    @Override public Object getItem(int pos) { return newDisplay[pos]; }
+                    @Override public long getItemId(int pos) { return pos; }
+                    @Override
+                    public android.view.View getView(int pos, android.view.View convertView, android.view.ViewGroup parent) {
+                        android.widget.LinearLayout row;
+                        android.widget.ImageView avatarView;
+                        android.widget.CheckedTextView tv;
+                        if (convertView == null) {
+                            row = new android.widget.LinearLayout(ctx);
+                            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                            row.setPadding((int)(12 * density), (int)(6 * density), (int)(12 * density), (int)(6 * density));
+                            avatarView = new android.widget.ImageView(ctx);
+                            avatarView.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+                            avatarView.setLayoutParams(new android.widget.LinearLayout.LayoutParams(avatarDp, avatarDp));
+                            ((android.widget.LinearLayout.LayoutParams)avatarView.getLayoutParams()).rightMargin = (int)(12 * density);
+                            avatarView.setId(View.generateViewId());
+                            row.addView(avatarView);
+                            tv = new android.widget.CheckedTextView(ctx);
+                            tv.setTextSize(15);
+                            tv.setPadding((int)(8 * density), 0, 0, 0);
+                            tv.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                            row.addView(tv);
+                            row.setTag(new Object[]{avatarView, tv});
+                        } else {
+                            row = (android.widget.LinearLayout) convertView;
+                            Object[] tags = (Object[]) row.getTag();
+                            avatarView = (android.widget.ImageView) tags[0];
+                            tv = (android.widget.CheckedTextView) tags[1];
+                        }
+                        tv.setText(newDisplay[pos]);
+                        tv.setChecked(listView.isItemChecked(pos));
+                        tv.setTextColor(textColor);
+                        loadItemAvatar(avatarView, newIds[pos], newContacts[pos]);
+                        return row;
+                    }
+                };
                 listView.setAdapter(newAdapter);
-                listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
                 for (int i = 0; i < newNames.length; i++) {
                     String name = newNames[i];
                     for (int j = 0; j < nameArray.length; j++) {
