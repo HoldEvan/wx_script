@@ -7,45 +7,13 @@ static final String DEFAULT_OPEN_COMMAND = "/TTS"
 static final String DEFAULT_SEND_COMMAND = "/tts"
 // ================================================
 
-// ====== 头像缓存与加载 ======
-static final String[] sAvatarDir = new String[]{null};
+// ====== 头像缓存 ======
 final Map<String, android.graphics.Bitmap> avatarCache = new java.util.LinkedHashMap<String, android.graphics.Bitmap>() {
     @Override
     protected boolean removeEldestEntry(Map.Entry<String, android.graphics.Bitmap> eldest) {
         return size() > 80;
     }
 };
-
-void initAvatarDir() {
-    if (sAvatarDir[0] != null) return;
-    try {
-        java.io.File mmf = new java.io.File("/data/data/com.tencent.mm/MicroMsg");
-        if (mmf.exists() && mmf.isDirectory()) {
-            java.io.File[] subs = mmf.listFiles();
-            if (subs != null) {
-                for (java.io.File sub : subs) {
-                    java.io.File avd = new java.io.File(sub, "avatar");
-                    if (avd.exists() && avd.isDirectory()) {
-                        sAvatarDir[0] = avd.getAbsolutePath();
-                        break;
-                    }
-                }
-            }
-        }
-    } catch (Exception e) { }
-    log("[TTS] 头像目录: " + (sAvatarDir[0] != null ? sAvatarDir[0] : "未找到"));
-}
-
-String getAvatarFilePath(String wxid) {
-    String dir = sAvatarDir[0];
-    if (dir == null) return null;
-    String[] exts = {".jpg", ".png", "_hd.jpg", "_hd.png", ".jpeg", ".webp"};
-    for (String ext : exts) {
-        java.io.File f = new java.io.File(dir, wxid + ext);
-        if (f.exists()) return f.getAbsolutePath();
-    }
-    return null;
-}
 
 android.graphics.Bitmap getCircularBitmap(android.graphics.Bitmap source) {
     int size = Math.min(source.getWidth(), source.getHeight());
@@ -66,53 +34,19 @@ android.graphics.Bitmap getCircularBitmap(android.graphics.Bitmap source) {
     return output;
 }
 
-void loadItemAvatar(final android.widget.ImageView imageView, final String wxid, final Object contact) {
-    if (avatarCache.containsKey(wxid)) {
-        imageView.setImageBitmap(avatarCache.get(wxid));
-        return;
+android.graphics.Bitmap getContactAvatar(Object contact) {
+    try {
+        java.lang.reflect.Method m = contact.getClass().getMethod("getAvatar");
+        Object result = m.invoke(contact);
+        if (result instanceof android.graphics.Bitmap) return (android.graphics.Bitmap) result;
+    } catch (Exception e1) {
+        try {
+            java.lang.reflect.Method m = contact.getClass().getMethod("getAvatarBitmap");
+            Object result = m.invoke(contact);
+            if (result instanceof android.graphics.Bitmap) return (android.graphics.Bitmap) result;
+        } catch (Exception e2) {}
     }
-    imageView.setImageResource(android.R.drawable.ic_menu_help);
-    new Thread(new Runnable() {
-        @Override
-        public void run() {
-            try {
-                android.graphics.Bitmap bm = null;
-                try {
-                    java.lang.reflect.Method m = contact.getClass().getMethod("getAvatar");
-                    Object result = m.invoke(contact);
-                    if (result instanceof android.graphics.Bitmap) {
-                        bm = (android.graphics.Bitmap) result;
-                    }
-                } catch (Exception e1) {
-                    try {
-                        java.lang.reflect.Method m = contact.getClass().getMethod("getAvatarBitmap");
-                        Object result = m.invoke(contact);
-                        if (result instanceof android.graphics.Bitmap) {
-                            bm = (android.graphics.Bitmap) result;
-                        }
-                    } catch (Exception e2) {}
-                }
-                if (bm == null) {
-                    initAvatarDir();
-                    String path = getAvatarFilePath(wxid);
-                    if (path != null) {
-                        bm = android.graphics.BitmapFactory.decodeFile(path);
-                    }
-                }
-                if (bm != null) {
-                    android.graphics.Bitmap circularBm = getCircularBitmap(bm);
-                    avatarCache.put(wxid, circularBm);
-                    final android.graphics.Bitmap finalBm = circularBm;
-                    new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
-                        @Override
-                        public void run() {
-                            imageView.setImageBitmap(finalBm);
-                        }
-                    });
-                }
-            } catch (Exception e) { }
-        }
-    }).start();
+    return null;
 }
 
 // ====== 判断当前是否为深色模式 ======
@@ -1037,33 +971,13 @@ void showListSelector(Context ctx, String key, TextView selectedView, TextView t
         listView.setDividerHeight(0);
         listView.setSelector(android.R.drawable.list_selector_background);
         
-        // 初始化头像目录
-        initAvatarDir();
-        
-        // 预加载所有头像（在 getView 之前，避免 BeanShell 在回调中 new File 崩溃）
+        // 预加载头像（仅用反射，避免 BeanShell new File 崩溃）
         final Map<String, android.graphics.Bitmap> preloadedAvatars = new java.util.HashMap<>();
         for (int i = 0; i < count; i++) {
             try {
-                android.graphics.Bitmap bm = null;
-                Object contact = contactArray[i];
-                String id = idArray[i];
-                try {
-                    java.lang.reflect.Method m = contact.getClass().getMethod("getAvatar");
-                    Object result = m.invoke(contact);
-                    if (result instanceof android.graphics.Bitmap) bm = (android.graphics.Bitmap) result;
-                } catch (Exception e1) {
-                    try {
-                        java.lang.reflect.Method m = contact.getClass().getMethod("getAvatarBitmap");
-                        Object result = m.invoke(contact);
-                        if (result instanceof android.graphics.Bitmap) bm = (android.graphics.Bitmap) result;
-                    } catch (Exception e2) {}
-                }
-                if (bm == null) {
-                    String path = getAvatarFilePath(id);
-                    if (path != null) bm = android.graphics.BitmapFactory.decodeFile(path);
-                }
+                android.graphics.Bitmap bm = getContactAvatar(contactArray[i]);
                 if (bm != null) {
-                    preloadedAvatars.put(id, getCircularBitmap(bm));
+                    preloadedAvatars.put(idArray[i], getCircularBitmap(bm));
                 }
             } catch (Exception e) { }
         }
