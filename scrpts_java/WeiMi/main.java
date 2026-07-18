@@ -2,7 +2,7 @@
 // ✅ 音频保存目录
 static final String AUDIO_DIR_NAME = "/tts_audio";
 // 默认唤起面板命令
-static final String DEFAULT_OPEN_COMMAND = "/TTS"
+static final String DEFAULT_OPEN_COMMAND = "/微秘"
 // 默认发送命令
 static final String DEFAULT_SEND_COMMAND = "/tts"
 // ================================================
@@ -442,6 +442,10 @@ void openMainPanel(){
     String accentPurple = dark ? "#BB8FCE" : "#8E44AD";
     String accentRed = dark ? "#EC7063" : "#E74C3C";
     String accentTeal = dark ? "#48C9B0" : "#1ABC9C";
+    String editBgHex = dark ? "#3A3A3A" : "#F0F2F5";
+    int labelColor = dark ? android.graphics.Color.parseColor("#DDDDDD") : android.graphics.Color.parseColor("#34495E");
+    int descColor = dark ? android.graphics.Color.parseColor("#AAAAAA") : android.graphics.Color.parseColor("#7F8C8D");
+    int inputTextColor = dark ? android.graphics.Color.WHITE : android.graphics.Color.parseColor("#2C3E50");
     
     var displayMetrics = new android.util.DisplayMetrics()
     ctx.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics)
@@ -462,7 +466,7 @@ void openMainPanel(){
     titleLayout.setBackgroundColor(bgColor)
     
     var titleText = new TextView(ctx)
-    titleText.setText("插件中心")
+    titleText.setText("WeiMi-微秘")
     titleText.setTextColor(titleColor)
     titleText.setTextSize(20)
     titleText.setTypeface(null, android.graphics.Typeface.BOLD)
@@ -614,6 +618,25 @@ void openMainPanel(){
     
     mainLayout.addView(cardLsp)
     
+    // ====== 设置 ======
+    var cardSettings = createCard(ctx, cardBgColor, 12, dpToPx(ctx, 14), dpToPx(ctx, 10));
+    cardSettings.addView(createSection(ctx, "设置", titleColor, accentBlue));
+    
+    String savedOpenCmd = getString("openCommand", "/微秘");
+    var openCmdLayout = createInputRow(ctx, "入口指令", savedOpenCmd, labelColor, inputTextColor, editBgHex, dark);
+    var openCmdEdit = (EditText) openCmdLayout.getTag();
+    openCmdEdit.addTextChangedListener(new android.text.TextWatcher() {
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+        public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        public void afterTextChanged(android.text.Editable s) {
+            String cmd = s.toString().trim()
+            if (!cmd.isEmpty()) putString("openCommand", cmd)
+        }
+    })
+    cardSettings.addView(openCmdLayout);
+    
+    mainLayout.addView(cardSettings)
+    
     scrollView.addView(mainLayout)
     mainContainer.addView(scrollView)
     
@@ -657,6 +680,24 @@ void openMainPanel(){
     
     mainContainer.addView(footLayout)
     
+    // GitHub 仓库地址
+    var repoView = new TextView(ctx)
+    repoView.setText("github.com/HoldEvan/wx_script")
+    repoView.setTextColor(versionColor)
+    repoView.setTextSize(11)
+    repoView.setGravity(android.view.Gravity.CENTER)
+    repoView.setPadding(dpToPx(ctx, 16), dpToPx(ctx, 4), dpToPx(ctx, 16), dpToPx(ctx, 10))
+    repoView.setBackgroundColor(bgColor)
+    repoView.setClickable(true)
+    repoView.setOnClickListener((v_repo) -> {
+        try {
+            ctx.startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/HoldEvan/wx_script")))
+        } catch (Exception e) { toast("打开失败") }
+    })
+    mainContainer.addView(repoView)
+    
     // 点击事件
     msgSixty.setOnClickListener((view) -> {
         log("[TTS] 打开每日六十秒面板");
@@ -688,15 +729,120 @@ void openMainPanel(){
     });
     sponsorBtn.setOnClickListener((v_sp_main) -> {
         try {
-            ctx.startActivity(new android.content.Intent(
-                android.content.Intent.ACTION_VIEW,
-                android.net.Uri.parse("https://www.baidu.com")));
+            var sd = new android.app.Dialog(ctx)
+            sd.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+            var sl = new LinearLayout(ctx)
+            sl.setOrientation(LinearLayout.VERTICAL)
+            sl.setPadding(dpToPx(ctx, 20), dpToPx(ctx, 20), dpToPx(ctx, 20), dpToPx(ctx, 20))
+            sl.setBackgroundColor(bgColor)
+            
+            var st = new TextView(ctx)
+            st.setText("WeiMi \u5fae\u79d8")
+            st.setTextColor(titleColor)
+            st.setTextSize(18)
+            st.setTypeface(null, android.graphics.Typeface.BOLD)
+            sl.addView(st)
+            
+            var ss1 = new View(ctx)
+            ss1.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 12)))
+            sl.addView(ss1)
+            
+            var sd1 = new TextView(ctx)
+            sd1.setText("\u57fa\u4e8e MonkeyCode \u5e73\u53f0\u5f00\u53d1\u7684\u5fae\u4fe1\u63d2\u4ef6\uff0c\u96c6\u6210 TTS \u64ad\u62a5\u3001\u6bcf\u65e5\u65b0\u95fb\u3001\u5386\u53f2\u4eca\u5929\u3001\u8868\u60c5\u5408\u6210\u3001\u5c0f\u4eba\u4e3e\u724c\u3001\u5b9a\u65f6\u6d88\u606f\u7b49\u591a\u79cd\u529f\u80fd\u3002")
+            sd1.setTextColor(descColor)
+            sd1.setTextSize(14)
+            sd1.setLineSpacing(dpToPx(ctx, 4), 1.0f)
+            sl.addView(sd1)
+            
+            var ss2 = new View(ctx)
+            ss2.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 12)))
+            sl.addView(ss2)
+            
+            var st2 = new TextView(ctx)
+            st2.setText("\u9080\u8bf7\u94fe\u63a5")
+            st2.setTextColor(titleColor)
+            st2.setTextSize(15)
+            st2.setTypeface(null, android.graphics.Typeface.BOLD)
+            sl.addView(st2)
+            
+            var ss3 = new View(ctx)
+            ss3.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 6)))
+            sl.addView(ss3)
+            
+            var linkRow = new LinearLayout(ctx)
+            linkRow.setOrientation(LinearLayout.HORIZONTAL)
+            linkRow.setGravity(android.view.Gravity.CENTER_VERTICAL)
+            linkRow.setBackground(createRoundedDrawable(editBgHex, 6))
+            linkRow.setPadding(dpToPx(ctx, 10), dpToPx(ctx, 8), dpToPx(ctx, 10), dpToPx(ctx, 8))
+            
+            var linkTv = new TextView(ctx)
+            linkTv.setText("https://monkeycode-ai.com/?ic=019f6886-b139-7bee-96ed-a2860b6c2d9d")
+            linkTv.setTextColor(android.graphics.Color.parseColor(accentBlue))
+            linkTv.setTextSize(12)
+            linkTv.setPaintFlags(linkTv.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG)
+            linkTv.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f))
+            linkTv.setClickable(true)
+            linkTv.setOnClickListener((v_lnk) -> {
+                try {
+                    ctx.startActivity(new android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://monkeycode-ai.com/?ic=019f6886-b139-7bee-96ed-a2860b6c2d9d")))
+                } catch (Exception e) { toast("\u6253\u5f00\u5931\u8d25") }
+            })
+            linkRow.addView(linkTv)
+            
+            var copyBtn = new Button(ctx)
+            copyBtn.setText("\u590d\u5236")
+            copyBtn.setTextSize(12)
+            copyBtn.setTextColor(android.graphics.Color.WHITE)
+            copyBtn.setBackground(createRoundedDrawable(accentBlue, 4))
+            copyBtn.setPadding(dpToPx(ctx, 10), dpToPx(ctx, 4), dpToPx(ctx, 10), dpToPx(ctx, 4))
+            copyBtn.setMinHeight(0)
+            copyBtn.setMinimumHeight(0)
+            copyBtn.setOnClickListener((v_cp) -> {
+                try {
+                    var cm = (android.content.ClipboardManager) ctx.getSystemService(ctx.CLIPBOARD_SERVICE)
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("invite", "https://monkeycode-ai.com/?ic=019f6886-b139-7bee-96ed-a2860b6c2d9d"))
+                    toast("\u5df2\u590d\u5236\u94fe\u63a5")
+                } catch (Exception e) { toast("\u590d\u5236\u5931\u8d25") }
+            })
+            linkRow.addView(copyBtn)
+            sl.addView(linkRow)
+            
+            var ss4 = new View(ctx)
+            ss4.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 14)))
+            sl.addView(ss4)
+            
+            var closeBtn = new Button(ctx)
+            closeBtn.setText("\u5173\u95ed")
+            closeBtn.setTextSize(14)
+            closeBtn.setTextColor(android.graphics.Color.WHITE)
+            closeBtn.setBackground(createRoundedDrawable("#7F8C8D", 6))
+            closeBtn.setGravity(android.view.Gravity.CENTER)
+            closeBtn.setMinHeight(0)
+            closeBtn.setMinimumHeight(0)
+            closeBtn.setPadding(0, 0, 0, 0)
+            var closeP = new LinearLayout.LayoutParams(-1, dpToPx(ctx, 38))
+            closeBtn.setLayoutParams(closeP)
+            closeBtn.setOnClickListener((v_cl) -> sd.dismiss())
+            sl.addView(closeBtn)
+            
+            sd.setContentView(sl)
+            var sw = sd.getWindow()
+            if (sw != null) {
+                sw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bgColor))
+                sw.setLayout((int)(screenWidth * 0.82), -2)
+                sw.setGravity(android.view.Gravity.CENTER)
+            }
+            sd.setCanceledOnTouchOutside(true)
+            sd.show()
         } catch (Exception e) {
-            toast("打开失败");
+            log("[TTS] sponsor dialog error: " + e.toString())
+            toast("打开失败")
         }
     });
     aiPlaceholder.setOnClickListener((view) -> { toast("开发中"); });
-    toolP1.setOnClickListener((view) -> { toast("开发中"); });
+    toolP1.setOnClickListener((view) -> { openTimedMsgPanel(getTargetTalker()); });
 
     
     var dialog = new android.app.Dialog(ctx)
@@ -2164,6 +2310,12 @@ void openSignPanel(String talker) {
     var cmdEdit = (EditText) cmdLayout.getTag();
     cmdEdit.setHint("输入 /举牌 触发");
     card1.addView(cmdLayout);
+    var cmdExample2 = new TextView(ctx)
+    cmdExample2.setText("\u793a\u4f8b: /\u4e3e\u724c \u4f60\u597d\u4e16\u754c")
+    cmdExample2.setTextColor(descColor)
+    cmdExample2.setTextSize(11)
+    cmdExample2.setPadding(dpToPx(ctx, 4), dpToPx(ctx, 2), 0, 0)
+    card1.addView(cmdExample2)
     mainLayout.addView(card1);
 
     // ==== 卡片2: AppID管理 ====
@@ -2715,6 +2867,16 @@ void openEmojiPanel(String talker) {
     var cmdEdit = (EditText) cmdLayout.getTag();
     cmdEdit.setHint("输入 /合成 触发");
     card1.addView(cmdLayout);
+    var cmdExample1 = new TextView(ctx)
+    cmdExample1.setText("\u793a\u4f8b: /\u5408\u6210 🥹+😀")
+    cmdExample1.setTextColor(descColor)
+    cmdExample1.setTextSize(11)
+    cmdExample1.setPadding(dpToPx(ctx, 4), dpToPx(ctx, 2), 0, 0)
+    card1.addView(cmdExample1)
+    
+    var card1_cmd = new LinearLayout.LayoutParams(-1, -2)
+    card1_cmd.setMargins(0, 0, 0, dpToPx(ctx, 6))
+    card1.setLayoutParams(card1_cmd)
     mainLayout.addView(card1);
     
     // ==== 卡片2: 预览 ====
@@ -3006,7 +3168,6 @@ void openSettingsPanel(){
     boolean savedReadSpeakerName = getBoolean("readSpeakerName", true);
     String savedSpeed = getString("speed", "1.0");
     String savedPitch = getString("pitch", "1.0");
-    String savedOpenCmd = getString("openCommand", DEFAULT_OPEN_COMMAND);
     String savedSendCmd = getString("sendCommand", DEFAULT_SEND_COMMAND);
     boolean savedDndEnabled = getBoolean("dndEnabled", false);
     String savedDndStartTime = getString("dndStartTime", "");
@@ -3118,10 +3279,6 @@ void openSettingsPanel(){
     
     var card4 = createCard(ctx, cardBgColor, 12, dpToPx(ctx, 14), dpToPx(ctx, 10));
     card4.addView(createSection(ctx, "命令配置", titleColor, accentPurple));
-    var openCmdLayout = createInputRow(ctx, "打开面板", savedOpenCmd, labelColor, inputTextColor, editBgHex, dark);
-    var openCmdEdit = (EditText) openCmdLayout.getTag();
-    card4.addView(openCmdLayout);
-    card4.addView(createDivider(ctx, dividerColor));
     var sendCmdLayout = createInputRow(ctx, "TTS发送", savedSendCmd, labelColor, inputTextColor, editBgHex, dark);
     var sendCmdEdit = (EditText) sendCmdLayout.getTag();
     card4.addView(sendCmdLayout);
@@ -3232,7 +3389,6 @@ void openSettingsPanel(){
         try {
             String speed = speedEdit.getText().toString().trim()
             String pitch = pitchEdit.getText().toString().trim()
-            String openCmd = openCmdEdit.getText().toString().trim()
             String sendCmd = sendCmdEdit.getText().toString().trim()
             String dndStart = dndStartEdit.getText().toString().trim()
             String dndEnd = dndEndEdit.getText().toString().trim()
@@ -3259,7 +3415,6 @@ void openSettingsPanel(){
             putBoolean("ttsManual", ttsManualSwitch.isChecked())
             putString("speed", speed)
             putString("pitch", pitch)
-            putString("openCommand", openCmd)
             putString("sendCommand", sendCmd)
             putBoolean("autoPlay", autoPlaySwitch.isChecked())
             putBoolean("readSelf", readSelfSwitch.isChecked())
@@ -4419,6 +4574,12 @@ void onHandleMsg(Object msgInfoBean) {
             }
         }
         
+        // ====== 定时消息检测 ======
+        boolean timedMsgEnabled = getBoolean("timedMsgEnabled", false)
+        if (timedMsgEnabled) {
+            try { checkTimedTasks(talker); } catch (Exception e) { log("[Timed] check error: " + e.toString()); }
+        }
+        
         // ====== TTS 消息处理 ======
         boolean ttsEnabled = getBoolean("ttsEnabled", true)
         if (!ttsEnabled) {
@@ -4606,4 +4767,722 @@ boolean onClickSendBtn(String text) {
     }
     log("未匹配触发指令: content=" + content);
     return false;
+}
+
+// ====== 定时消息 ======
+void checkTimedTasks(String talker) {
+    String json = getString("timedTasks", "[]");
+    var arr = new org.json.JSONArray(json);
+    if (arr.length() == 0) return;
+    
+    java.util.Calendar now = java.util.Calendar.getInstance();
+    int nowHour = now.get(java.util.Calendar.HOUR_OF_DAY);
+    int nowMin = now.get(java.util.Calendar.MINUTE);
+    int nowDow = now.get(java.util.Calendar.DAY_OF_WEEK); // 1=Sun, 2=Mon...
+    String timeKey = nowHour + ":" + nowMin;
+    
+    // 读取已发送记录（防止同分钟重复发送）
+    String sentLog = getString("timedSentLog", "{}");
+    var sentObj = new org.json.JSONObject(sentLog);
+    
+    boolean modified = false;
+    for (int i = 0; i < arr.length(); i++) {
+        var task = arr.getJSONObject(i);
+            if (!task.optBoolean("enabled", true)) continue;
+            
+            // 获取所有触发时间（支持 times 数组和旧版单 time 字段）
+            var taskTimesArr = task.optJSONArray("times");
+            java.util.List<String> taskTimes = new java.util.ArrayList();
+            if (taskTimesArr != null && taskTimesArr.length() > 0) {
+                for (int tt = 0; tt < taskTimesArr.length(); tt++) {
+                    taskTimes.add(taskTimesArr.getString(tt));
+                }
+            } else {
+                String oldTime = task.optString("time", "");
+                if (!oldTime.isEmpty()) taskTimes.add(oldTime);
+            }
+            
+            boolean timeMatched = false;
+            for (String taskTime : taskTimes) {
+                if (taskTime.equals(timeKey)) { timeMatched = true; break; }
+            }
+            if (!timeMatched) continue;
+        
+        var daysArr = task.optJSONArray("days");
+        if (daysArr != null && daysArr.length() > 0) {
+            boolean dayMatch = false;
+            for (int d = 0; d < daysArr.length(); d++) {
+                if (daysArr.getInt(d) == nowDow) { dayMatch = true; break; }
+            }
+            if (!dayMatch) continue;
+        }
+        
+        String taskId = task.optString("id", "");
+        String dateKey = now.get(java.util.Calendar.YEAR) + "-" + (now.get(java.util.Calendar.MONTH) + 1) + "-" + now.get(java.util.Calendar.DAY_OF_MONTH);
+        String sentKey = taskId + "_" + dateKey;
+        String lastSent = sentObj.optString(sentKey, "");
+        if (lastSent.equals(timeKey)) continue; // 已发送过
+        
+        String content = task.optString("content", "");
+        if (!content.isEmpty()) {
+            log("[Timed] \u53d1\u9001\u5b9a\u65f6\u6d88\u606f: " + content);
+            String target = task.has("targetTalker") ? task.optString("targetTalker", talker) : talker
+            sendText(target, content);
+        }
+        sentObj.put(sentKey, timeKey);
+        modified = true;
+    }
+    
+    if (modified) {
+        putString("timedSentLog", sentObj.toString());
+    }
+}
+
+void openTimedMsgPanel(String talker) {
+    var ctx = getTopActivity()
+    if (ctx == null) return;
+    boolean dark = isDarkMode(ctx);
+    
+    int bgColor = dark ? android.graphics.Color.parseColor("#1E1E1E") : android.graphics.Color.WHITE;
+    int contentBgColor = dark ? android.graphics.Color.parseColor("#2C2C2C") : android.graphics.Color.parseColor("#F5F7FA");
+    int cardBgColor = dark ? android.graphics.Color.parseColor("#2A2A2A") : android.graphics.Color.WHITE;
+    int titleColor = dark ? android.graphics.Color.WHITE : android.graphics.Color.parseColor("#2C3E50");
+    int descColor = dark ? android.graphics.Color.parseColor("#AAAAAA") : android.graphics.Color.parseColor("#7F8C8D");
+    int dividerColor = dark ? android.graphics.Color.parseColor("#444444") : android.graphics.Color.parseColor("#E8ECEF");
+    int inputTextColor = dark ? android.graphics.Color.WHITE : android.graphics.Color.parseColor("#2C3E50");
+    int labelColor = dark ? android.graphics.Color.parseColor("#DDDDDD") : android.graphics.Color.parseColor("#34495E");
+    
+    String accentBlue = dark ? "#5DADE2" : "#3498DB";
+    String accentOrange = dark ? "#F4D03F" : "#F39C12";
+    String editBgHex = dark ? "#3A3A3A" : "#F0F2F5";
+    
+    var dm = new android.util.DisplayMetrics()
+    ctx.getWindowManager().getDefaultDisplay().getMetrics(dm)
+    int screenHeight = dm.heightPixels
+    int screenWidth = dm.widthPixels
+    
+    var mainContainer = new LinearLayout(ctx)
+    mainContainer.setOrientation(LinearLayout.VERTICAL)
+    mainContainer.setLayoutParams(new LinearLayout.LayoutParams(-1, -1))
+    mainContainer.setBackgroundColor(bgColor)
+    
+    android.app.Dialog mainDialog = new android.app.Dialog(ctx)
+    mainDialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+    
+    // 标题
+    var titleLayout = new LinearLayout(ctx)
+    titleLayout.setOrientation(LinearLayout.HORIZONTAL)
+    titleLayout.setGravity(android.view.Gravity.CENTER_VERTICAL)
+    titleLayout.setPadding(dpToPx(ctx, 16), dpToPx(ctx, 16), dpToPx(ctx, 16), dpToPx(ctx, 12))
+    titleLayout.setBackgroundColor(bgColor)
+    var titleText = new TextView(ctx)
+    titleText.setText("定时消息")
+    titleText.setTextColor(titleColor)
+    titleText.setTextSize(18)
+    titleText.setTypeface(null, android.graphics.Typeface.BOLD)
+    titleText.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f))
+    titleLayout.addView(titleText)
+    mainContainer.addView(titleLayout)
+    
+    var titleDivider = new View(ctx)
+    titleDivider.setLayoutParams(new LinearLayout.LayoutParams(-1, 1))
+    titleDivider.setBackgroundColor(dividerColor)
+    mainContainer.addView(titleDivider)
+    
+    // 滚动区域
+    var scrollView = new ScrollView(ctx)
+    var scrollParams = new LinearLayout.LayoutParams(-1, 0)
+    scrollParams.weight = 1.0f
+    scrollView.setLayoutParams(scrollParams)
+    scrollView.setBackgroundColor(contentBgColor)
+    
+    var mainLayout = new LinearLayout(ctx)
+    mainLayout.setOrientation(LinearLayout.VERTICAL)
+    mainLayout.setPadding(dpToPx(ctx, 14), dpToPx(ctx, 10), dpToPx(ctx, 14), dpToPx(ctx, 10))
+    mainLayout.setBackgroundColor(contentBgColor)
+    
+    // 解析现有任务
+    String json = getString("timedTasks", "[]");
+    org.json.JSONArray tasks;
+    try { tasks = new org.json.JSONArray(json); } catch (Exception e) { tasks = new org.json.JSONArray(); }
+    
+    if (tasks.length() == 0) {
+        var emptyHint = new TextView(ctx)
+        emptyHint.setText("暂无定时消息\n点击下方按钮添加")
+        emptyHint.setTextColor(descColor)
+        emptyHint.setTextSize(14)
+        emptyHint.setGravity(android.view.Gravity.CENTER)
+        emptyHint.setPadding(0, dpToPx(ctx, 30), 0, dpToPx(ctx, 30))
+        mainLayout.addView(emptyHint)
+    } else {
+        for (int i = 0; i < tasks.length(); i++) {
+            var task = tasks.getJSONObject(i);
+            String taskId = task.optString("id", "");
+            String taskContent = task.optString("content", "");
+            boolean taskEnabled = task.optBoolean("enabled", true);
+            var daysArr = task.optJSONArray("days");
+            
+            // Build times display
+            StringBuilder timesSb = new StringBuilder();
+            var timesArr = task.optJSONArray("times");
+            if (timesArr != null && timesArr.length() > 0) {
+                for (int ti = 0; ti < timesArr.length(); ti++) {
+                    if (ti > 0) timesSb.append(" ");
+                    timesSb.append(timesArr.getString(ti));
+                }
+            } else {
+                timesSb.append(task.optString("time", "12:00"));
+            }
+            String taskTimes = timesSb.toString();
+            
+            var card = createCard(ctx, cardBgColor, 8, dpToPx(ctx, 10), dpToPx(ctx, 8))
+            final org.json.JSONObject finalTask = task;
+            final int finalIdx = i;
+            card.setOnClickListener((view_card0) -> {
+                try {
+                    showTimedTaskEditor(ctx, talker, finalTask, finalIdx, dark, bgColor, titleColor, descColor, inputTextColor, labelColor, dividerColor, editBgHex, accentBlue, contentBgColor, screenWidth, screenHeight, mainDialog)
+                } catch (Exception e) { log("[Timed] card click error: " + e.toString()); }
+            })
+            var row = new LinearLayout(ctx)
+            row.setOrientation(LinearLayout.HORIZONTAL)
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL)
+            
+            var infoCol = new LinearLayout(ctx)
+            infoCol.setOrientation(LinearLayout.VERTICAL)
+            infoCol.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f))
+            
+            var timeTv = new TextView(ctx)
+            timeTv.setText(taskTimes)
+            timeTv.setTextColor(titleColor)
+            timeTv.setTextSize(16)
+            timeTv.setTypeface(null, android.graphics.Typeface.BOLD)
+            infoCol.addView(timeTv)
+            
+            String taskTarget = task.has("targetTalker") ? task.optString("targetTalker", talker) : talker
+            if (!taskTarget.equals(talker)) {
+                var targetTv = new TextView(ctx)
+                targetTv.setText("\u2192 " + taskTarget)
+                targetTv.setTextColor(descColor)
+                targetTv.setTextSize(12)
+                infoCol.addView(targetTv)
+            }
+            
+            var contentTv = new TextView(ctx)
+            contentTv.setText(taskContent)
+            contentTv.setTextColor(descColor)
+            contentTv.setTextSize(13)
+            infoCol.addView(contentTv)
+            
+            // 星期显示
+            if (daysArr != null && daysArr.length() > 0) {
+                String[] dayNames = {"周日","周一","周二","周三","周四","周五","周六"};
+                var sb = new StringBuilder();
+                for (int d = 0; d < daysArr.length(); d++) {
+                    int dayVal = daysArr.getInt(d);
+                    if (dayVal >= 1 && dayVal <= 7) {
+                        if (sb.length() > 0) sb.append(" ");
+                        sb.append(dayNames[dayVal - 1]);
+                    }
+                }
+                if (sb.length() > 0) {
+                    if (sb.toString().equals("周一 周二 周三 周四 周五")) {
+                        sb = new StringBuilder("工作日");
+                    } else if (sb.toString().equals("周日 周一 周二 周三 周四 周五 周六")) {
+                        sb = new StringBuilder("每天");
+                    }
+                    var daysTv = new TextView(ctx)
+                    daysTv.setText(sb.toString())
+                    daysTv.setTextColor(android.graphics.Color.parseColor(accentBlue))
+                    daysTv.setTextSize(11)
+                    infoCol.addView(daysTv)
+                }
+            }
+            
+            row.addView(infoCol)
+            
+            var taskSw = new android.widget.Switch(ctx)
+            taskSw.setChecked(taskEnabled)
+            int finalI = i;
+            taskSw.setOnCheckedChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
+                public void onCheckedChanged(android.widget.CompoundButton btn, boolean checked) {
+                    try {
+                        String curJson = getString("timedTasks", "[]");
+                        var curArr = new org.json.JSONArray(curJson);
+                        if (finalI < curArr.length()) {
+                            curArr.getJSONObject(finalI).put("enabled", checked);
+                            putString("timedTasks", curArr.toString());
+                        }
+                    } catch (Exception e) { log("[Timed] switch error: " + e.toString()); }
+                }
+            })
+            row.addView(taskSw)
+            
+            card.addView(row)
+            
+            // 删除按钮
+            var delBtn = new Button(ctx)
+            delBtn.setText("X")
+            delBtn.setTextSize(11)
+            delBtn.setTextColor(android.graphics.Color.WHITE)
+            delBtn.setPadding(dpToPx(ctx, 6), 0, dpToPx(ctx, 6), 0)
+            delBtn.setMinHeight(0)
+            delBtn.setMinimumHeight(0)
+            delBtn.setBackground(createRoundedDrawable("#E74C3C", 4))
+            int delI = i;
+            delBtn.setOnClickListener((v_del_timed_item) -> {
+                try {
+                    String curJson = getString("timedTasks", "[]");
+                    var curArr = new org.json.JSONArray(curJson);
+                    var newArr = new org.json.JSONArray();
+                    for (int k = 0; k < curArr.length(); k++) {
+                        if (k != delI) newArr.put(curArr.get(k));
+                    }
+                    putString("timedTasks", newArr.toString());
+                    toast("已删除");
+                    android.app.Dialog dlg_main = mainDialog;
+                    String tlk = talker;
+                    dlg_main.dismiss();
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+                        public void run() {
+                            openTimedMsgPanel(tlk);
+                        }
+                    });
+                } catch (Exception e) { log("[Timed] del error: " + e.toString()); }
+            })
+            
+            var delRow = new LinearLayout(ctx)
+            delRow.setOrientation(LinearLayout.HORIZONTAL)
+            delRow.setGravity(android.view.Gravity.END)
+            delRow.setPadding(0, dpToPx(ctx, 4), 0, 0)
+            delRow.addView(delBtn)
+            card.addView(delRow)
+            
+            mainLayout.addView(card)
+            if (i < tasks.length() - 1) {
+                var sp = new View(ctx)
+                sp.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 6)))
+                mainLayout.addView(sp)
+            }
+        }
+    }
+    
+    scrollView.addView(mainLayout)
+    mainContainer.addView(scrollView)
+    
+    // 底部按钮
+    var buttonDivider = new View(ctx)
+    buttonDivider.setLayoutParams(new LinearLayout.LayoutParams(-1, 1))
+    buttonDivider.setBackgroundColor(dividerColor)
+    mainContainer.addView(buttonDivider)
+    
+    var buttonLayout = new LinearLayout(ctx)
+    buttonLayout.setOrientation(LinearLayout.HORIZONTAL)
+    buttonLayout.setPadding(dpToPx(ctx, 16), dpToPx(ctx, 14), dpToPx(ctx, 16), dpToPx(ctx, 14))
+    buttonLayout.setBackgroundColor(bgColor)
+    buttonLayout.setGravity(android.view.Gravity.CENTER)
+    
+    var addBtn = new Button(ctx)
+    addBtn.setText("+ 添加")
+    addBtn.setTextSize(14)
+    addBtn.setTextColor(android.graphics.Color.WHITE)
+    addBtn.setPadding(0, 0, 0, 0)
+    addBtn.setBackground(createRoundedDrawable(accentBlue, 6))
+    var addP = new LinearLayout.LayoutParams(0, dpToPx(ctx, 40), 0.45f)
+    addP.setMargins(dpToPx(ctx, 4), 0, dpToPx(ctx, 4), 0)
+    addBtn.setLayoutParams(addP)
+    addBtn.setOnClickListener((v_addt) -> {
+        showTimedTaskEditor(ctx, talker, null, -1, dark, bgColor, titleColor, descColor, inputTextColor, labelColor, dividerColor, editBgHex, accentBlue, contentBgColor, screenWidth, screenHeight, mainDialog)
+    })
+    buttonLayout.addView(addBtn)
+    
+    var closeBtn = new Button(ctx)
+    closeBtn.setText("关闭")
+    closeBtn.setTextSize(14)
+    closeBtn.setTextColor(android.graphics.Color.WHITE)
+    closeBtn.setPadding(0, 0, 0, 0)
+    closeBtn.setBackground(createRoundedDrawable("#7F8C8D", 6))
+    var closeP = new LinearLayout.LayoutParams(0, dpToPx(ctx, 40), 0.45f)
+    closeP.setMargins(dpToPx(ctx, 4), 0, dpToPx(ctx, 4), 0)
+    closeBtn.setLayoutParams(closeP)
+    closeBtn.setOnClickListener((v_closet) -> mainDialog.dismiss())
+    buttonLayout.addView(closeBtn)
+    
+    mainContainer.addView(buttonLayout)
+    
+    mainDialog.setContentView(mainContainer)
+    mainDialog.setCanceledOnTouchOutside(true)
+    var window = mainDialog.getWindow()
+    if (window != null) {
+        window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bgColor))
+        window.setLayout((int)(screenWidth * 0.88), (int)(screenHeight * 0.72))
+        window.setGravity(android.view.Gravity.CENTER)
+    }
+    mainContainer.setTag(mainDialog)
+    mainDialog.show()
+}
+
+void showTimedTaskEditor(Context ctx, String talker, org.json.JSONObject editTask, int editIndex, boolean dark, int bgColor, int titleColor, int descColor, int inputTextColor, int labelColor, int dividerColor, String editBgHex, String accentBlue, int contentBgColor, int screenWidth, int screenHeight, android.app.Dialog mainDialog) {
+    boolean isEdit = editTask != null;
+    String editId = isEdit ? editTask.optString("id", "") : "";
+    // 从任务加载已有时间
+    java.util.List<String> editTimes = new java.util.ArrayList();
+    org.json.JSONArray initTimesArr = isEdit ? editTask.optJSONArray("times") : null;
+    if (initTimesArr != null && initTimesArr.length() > 0) {
+        for (int ti = 0; ti < initTimesArr.length(); ti++) editTimes.add(initTimesArr.getString(ti));
+    } else if (isEdit) {
+        String oldTime = editTask.optString("time", "");
+        if (!oldTime.isEmpty()) editTimes.add(oldTime);
+    }
+    if (editTimes.isEmpty()) editTimes.add("12:00");
+    String editContent = isEdit ? editTask.optString("content", "") : "";
+    boolean editEnabled = isEdit ? editTask.optBoolean("enabled", true) : true;
+    java.util.List<Integer> editDays = new java.util.ArrayList();
+    if (isEdit && editTask.has("days")) {
+        var da = editTask.optJSONArray("days");
+        if (da != null) for (int d = 0; d < da.length(); d++) editDays.add(da.getInt(d));
+    }
+    if (editDays.isEmpty()) {
+        for (int d = 2; d <= 6; d++) editDays.add(d); // 默认工作日
+    }
+    
+    android.app.Dialog editor = new android.app.Dialog(ctx)
+    editor.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+    
+    var root = new LinearLayout(ctx)
+    root.setOrientation(LinearLayout.VERTICAL)
+    root.setPadding(dpToPx(ctx, 16), dpToPx(ctx, 16), dpToPx(ctx, 16), dpToPx(ctx, 16))
+    root.setBackgroundColor(bgColor)
+    
+    var titleTv = new TextView(ctx)
+    titleTv.setText(isEdit ? "编辑定时消息" : "添加定时消息")
+    titleTv.setTextColor(titleColor)
+    titleTv.setTextSize(18)
+    titleTv.setTypeface(null, android.graphics.Typeface.BOLD)
+    root.addView(titleTv)
+    
+    var sp1 = new View(ctx)
+    sp1.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 12)))
+    root.addView(sp1)
+    
+    // 多时间输入
+    var timeLabel = new TextView(ctx)
+    timeLabel.setText("时间")
+    timeLabel.setTextColor(labelColor)
+    timeLabel.setTextSize(14)
+    root.addView(timeLabel)
+    
+    var sp_t1 = new View(ctx)
+    sp_t1.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 6)))
+    root.addView(sp_t1)
+    
+    // 时间列表容器
+    final LinearLayout timeListLayout = new LinearLayout(ctx)
+    timeListLayout.setOrientation(LinearLayout.HORIZONTAL)
+    timeListLayout.setLayoutParams(new LinearLayout.LayoutParams(-1, -2))
+    timeListLayout.setPadding(0, 0, 0, 0)
+    root.addView(timeListLayout)
+    
+    // 重建时间列表
+    final Runnable rebuildTimeList = new Runnable() {
+        public void run() {
+            timeListLayout.removeAllViews()
+            for (int ti = 0; ti < editTimes.size(); ti++) {
+                final String t = editTimes.get(ti)
+                final int tIdx = ti
+                var chip = new LinearLayout(ctx)
+                chip.setOrientation(LinearLayout.HORIZONTAL)
+                chip.setGravity(android.view.Gravity.CENTER_VERTICAL)
+                chip.setBackground(createRoundedDrawable(editBgHex, 4))
+                chip.setPadding(dpToPx(ctx, 10), 0, dpToPx(ctx, 4), 0)
+                var chipP = new LinearLayout.LayoutParams(-2, dpToPx(ctx, 30))
+                chipP.setMargins(0, 0, dpToPx(ctx, 6), 0)
+                chip.setLayoutParams(chipP)
+                
+                var tv = new TextView(ctx)
+                tv.setText(t)
+                tv.setTextColor(inputTextColor)
+                tv.setTextSize(13)
+                chip.addView(tv)
+                
+                var xBtn = new Button(ctx)
+                xBtn.setText("X")
+                xBtn.setTextSize(9)
+                xBtn.setTextColor(android.graphics.Color.parseColor("#E74C3C"))
+                xBtn.setBackground(null)
+                xBtn.setMinHeight(0)
+                xBtn.setMinimumHeight(0)
+                xBtn.setPadding(dpToPx(ctx, 4), 0, dpToPx(ctx, 4), 0)
+                xBtn.setOnClickListener((v_del_time) -> {
+                    if (editTimes.size() <= 1) { toast("至少保留一个时间"); return; }
+                    editTimes.remove(tIdx)
+                    rebuildTimeList.run()
+                })
+                chip.addView(xBtn)
+                timeListLayout.addView(chip)
+            }
+        }
+    }
+    rebuildTimeList.run()
+    
+    // 添加时间行
+    var addTimeRow = new LinearLayout(ctx)
+    addTimeRow.setOrientation(LinearLayout.HORIZONTAL)
+    addTimeRow.setGravity(android.view.Gravity.CENTER_VERTICAL)
+    addTimeRow.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 38)))
+    
+    var timeEdit = new EditText(ctx)
+    timeEdit.setHint("HH:mm")
+    timeEdit.setTextColor(inputTextColor)
+    timeEdit.setHintTextColor(descColor)
+    timeEdit.setTextSize(13)
+    timeEdit.setBackground(createRoundedDrawable(editBgHex, 4))
+    timeEdit.setPadding(dpToPx(ctx, 8), 0, dpToPx(ctx, 8), 0)
+    timeEdit.setSingleLine(true)
+    var teP = new LinearLayout.LayoutParams(0, dpToPx(ctx, 32), 1.0f)
+    teP.setMargins(0, 0, dpToPx(ctx, 6), 0)
+    timeEdit.setLayoutParams(teP)
+    addTimeRow.addView(timeEdit)
+    
+    var addTimeBtn = new android.widget.TextView(ctx)
+    addTimeBtn.setText("+ 添加")
+    addTimeBtn.setTextSize(12)
+    addTimeBtn.setTextColor(android.graphics.Color.WHITE)
+    addTimeBtn.setGravity(android.view.Gravity.CENTER)
+    addTimeBtn.setIncludeFontPadding(false)
+    addTimeBtn.setBackground(createRoundedDrawable(accentBlue, 4))
+    addTimeBtn.setPadding(dpToPx(ctx, 12), 0, dpToPx(ctx, 12), 0)
+    addTimeBtn.setMinHeight(0)
+    addTimeBtn.setMinimumHeight(0)
+    addTimeBtn.setLayoutParams(new LinearLayout.LayoutParams(-2, dpToPx(ctx, 32)))
+    addTimeBtn.setClickable(true)
+    addTimeBtn.setFocusable(true)
+    addTimeBtn.setOnClickListener((v_add_time) -> {
+        String nt = timeEdit.getText().toString().trim()
+        if (!nt.matches("\\d{2}:\\d{2}")) { toast("格式: HH:mm"); return; }
+        if (editTimes.contains(nt)) { toast("时间已存在"); return; }
+        if (editTimes.size() >= 5) { toast("最多5个时间"); return; }
+        editTimes.add(nt)
+        timeEdit.setText("")
+        rebuildTimeList.run()
+    })
+    addTimeRow.addView(addTimeBtn)
+    root.addView(addTimeRow)
+    
+    var sp2 = new View(ctx)
+    sp2.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 12)))
+    root.addView(sp2)
+    
+    // 内容输入
+    var contentLabel = new TextView(ctx)
+    contentLabel.setText("消息内容")
+    contentLabel.setTextColor(labelColor)
+    contentLabel.setTextSize(14)
+    root.addView(contentLabel)
+    
+    var contentEdit = new EditText(ctx)
+    contentEdit.setText(editContent)
+    contentEdit.setTextColor(inputTextColor)
+    contentEdit.setTextSize(14)
+    contentEdit.setBackground(createRoundedDrawable(editBgHex, 6))
+    contentEdit.setPadding(dpToPx(ctx, 10), dpToPx(ctx, 6), dpToPx(ctx, 10), dpToPx(ctx, 6))
+    contentEdit.setMinLines(2)
+    contentEdit.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 50)))
+    root.addView(contentEdit)
+    
+    var sp3 = new View(ctx)
+    sp3.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 12)))
+    root.addView(sp3)
+    
+    // 收信人（占位，后续弹窗）
+    final String[] targetTalker = {isEdit ? editTask.optString("targetTalker", talker) : talker}
+    var contactLabel = new TextView(ctx)
+    contactLabel.setText("\u6536\u4fe1\u4eba")
+    contactLabel.setTextColor(labelColor)
+    contactLabel.setTextSize(14)
+    root.addView(contactLabel)
+    var sp_c1 = new View(ctx)
+    sp_c1.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 6)))
+    root.addView(sp_c1)
+    var contactRow = new LinearLayout(ctx)
+    contactRow.setOrientation(LinearLayout.HORIZONTAL)
+    contactRow.setGravity(android.view.Gravity.CENTER_VERTICAL)
+    contactRow.setBackground(createRoundedDrawable(editBgHex, 6))
+    contactRow.setPadding(dpToPx(ctx, 10), dpToPx(ctx, 8), dpToPx(ctx, 10), dpToPx(ctx, 8))
+    contactRow.setLayoutParams(new LinearLayout.LayoutParams(-1, -2))
+    var contactTv = new TextView(ctx)
+    contactTv.setText(targetTalker[0])
+    contactTv.setTextColor(inputTextColor)
+    contactTv.setTextSize(14)
+    contactTv.setLayoutParams(new LinearLayout.LayoutParams(-1, -2, 1.0f))
+    contactRow.addView(contactTv)
+    var contactBtn = new Button(ctx)
+    contactBtn.setText("\u9009\u62e9")
+    contactBtn.setTextColor(android.graphics.Color.parseColor(accentBlue))
+    contactBtn.setTextSize(12)
+    contactBtn.setBackground(null)
+    contactBtn.setPadding(dpToPx(ctx, 8), 0, 0, 0)
+    contactBtn.setMinHeight(0)
+    contactBtn.setMinWidth(0)
+    contactBtn.setGravity(android.view.Gravity.CENTER)
+    contactBtn.setOnClickListener((v_cb) -> {
+        toast("\u6682\u672a\u5b9e\u73b0")
+    })
+    contactRow.addView(contactBtn)
+    root.addView(contactRow)
+    
+    var sp_contact = new View(ctx)
+    sp_contact.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 12)))
+    root.addView(sp_contact)
+    
+    // 星期选择
+    var daysLabel = new TextView(ctx)
+    daysLabel.setText("重复")
+    daysLabel.setTextColor(labelColor)
+    daysLabel.setTextSize(14)
+    root.addView(daysLabel)
+    
+    String[] dayLabels = {"日", "一", "二", "三", "四", "五", "六"};
+    int[] dayVals = {1, 2, 3, 4, 5, 6, 7};
+    java.util.Map<Integer, Button> dayBtns = new java.util.HashMap();
+    String dayOffHex = dark ? "#444444" : "#E0E0E0";
+    int dayOffText = dark ? android.graphics.Color.parseColor("#AAAAAA") : android.graphics.Color.parseColor("#666666");
+    var daysRow = new LinearLayout(ctx)
+    daysRow.setOrientation(LinearLayout.HORIZONTAL)
+    daysRow.setPadding(0, dpToPx(ctx, 4), 0, 0)
+    for (int d = 0; d < 7; d++) {
+        final int dayIdx = d;
+        final int dayVal = dayVals[d];
+        var db = new Button(ctx)
+        db.setText(dayLabels[d])
+        db.setTextSize(12)
+        db.setTextColor(dayOffText)
+        db.setPadding(0, 0, 0, 0)
+        db.setMinHeight(0)
+        db.setMinimumHeight(0)
+        db.setBackground(createRoundedDrawable(dayOffHex, 4))
+        var dbP = new LinearLayout.LayoutParams(0, dpToPx(ctx, 34), 1.0f)
+        dbP.setMargins(dpToPx(ctx, 2), 0, dpToPx(ctx, 2), 0)
+        db.setLayoutParams(dbP)
+        if (editDays.contains(dayVal)) {
+            db.setTextColor(android.graphics.Color.WHITE)
+            db.setBackground(createRoundedDrawable(accentBlue, 4))
+        }
+        db.setOnClickListener(new android.view.View.OnClickListener() {
+            public void onClick(android.view.View v_day2) {
+                Button b = (Button) v_day2;
+                boolean nowChecked = b.getTextColors().getDefaultColor() == android.graphics.Color.WHITE;
+                if (nowChecked) {
+                    b.setTextColor(dayOffText);
+                    b.setBackground(createRoundedDrawable(dayOffHex, 4));
+                } else {
+                    b.setTextColor(android.graphics.Color.WHITE);
+                    b.setBackground(createRoundedDrawable(accentBlue, 4));
+                }
+            }
+        })
+        dayBtns.put(dayVal, db)
+        daysRow.addView(db)
+    }
+    root.addView(daysRow)
+    
+    var sp4 = new View(ctx)
+    sp4.setLayoutParams(new LinearLayout.LayoutParams(-1, dpToPx(ctx, 16)))
+    root.addView(sp4)
+    
+    // 按钮
+    var btnRow = new LinearLayout(ctx)
+    btnRow.setOrientation(LinearLayout.HORIZONTAL)
+    btnRow.setGravity(android.view.Gravity.CENTER)
+    
+    var cancelBtn = new Button(ctx)
+    cancelBtn.setText("取消")
+    cancelBtn.setTextSize(14)
+    cancelBtn.setTextColor(android.graphics.Color.WHITE)
+    cancelBtn.setGravity(android.view.Gravity.CENTER)
+    cancelBtn.setIncludeFontPadding(false)
+    cancelBtn.setBackground(createRoundedDrawable("#7F8C8D", 6))
+    cancelBtn.setPadding(0, 0, 0, 0)
+    cancelBtn.setMinHeight(0)
+    cancelBtn.setMinimumHeight(0)
+    var ccp = new LinearLayout.LayoutParams(0, dpToPx(ctx, 40), 0.45f)
+    ccp.setMargins(dpToPx(ctx, 4), 0, dpToPx(ctx, 4), 0)
+    cancelBtn.setLayoutParams(ccp)
+    cancelBtn.setOnClickListener((v_cancel_timed_editor) -> editor.dismiss())
+    btnRow.addView(cancelBtn)
+    
+    var saveBtn = new Button(ctx)
+    saveBtn.setText(isEdit ? "保存" : "添加")
+    saveBtn.setTextSize(14)
+    saveBtn.setTextColor(android.graphics.Color.WHITE)
+    saveBtn.setGravity(android.view.Gravity.CENTER)
+    saveBtn.setIncludeFontPadding(false)
+    saveBtn.setBackground(createRoundedDrawable(accentBlue, 6))
+    saveBtn.setPadding(0, 0, 0, 0)
+    saveBtn.setMinHeight(0)
+    saveBtn.setMinimumHeight(0)
+    var svp = new LinearLayout.LayoutParams(0, dpToPx(ctx, 40), 0.45f)
+    svp.setMargins(dpToPx(ctx, 4), 0, dpToPx(ctx, 4), 0)
+    saveBtn.setLayoutParams(svp)
+    saveBtn.setOnClickListener((v_save_timed_editor) -> {
+        try {
+            if (editTimes.isEmpty()) { toast("请添加至少一个时间"); return; }
+            String contentVal = contentEdit.getText().toString().trim()
+            if (contentVal.isEmpty()) { toast("请输入消息内容"); return; }
+            
+            var selectedDays = new org.json.JSONArray();
+            for (int v : dayVals) {
+                Button b = dayBtns.get(v);
+                if (b != null && b.getTextColors().getDefaultColor() == android.graphics.Color.WHITE) selectedDays.put(v);
+            }
+            if (selectedDays.length() == 0) { toast("请选择至少一天"); return; }
+            
+            String curJson = getString("timedTasks", "[]");
+            var curArr = new org.json.JSONArray(curJson);
+            
+            var timesArr = new org.json.JSONArray();
+            for (String t : editTimes) timesArr.put(t);
+            
+            var newTask = new org.json.JSONObject();
+            newTask.put("id", isEdit ? editId : java.util.UUID.randomUUID().toString());
+            newTask.put("times", timesArr);
+            // 向后兼容
+            newTask.put("time", editTimes.get(0));
+            newTask.put("days", selectedDays);
+newTask.put("content", contentVal);
+newTask.put("targetTalker", targetTalker[0]);
+newTask.put("enabled", true);
+            
+            if (isEdit && editIndex >= 0 && editIndex < curArr.length()) {
+                curArr.put(editIndex, newTask);
+            } else {
+                curArr.put(newTask);
+            }
+            
+            putString("timedTasks", curArr.toString());
+            android.app.Dialog ed = editor;
+            android.app.Dialog md = mainDialog;
+            String tlk = talker;
+            ed.dismiss();
+            md.dismiss();
+            toast("已保存");
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+                public void run() {
+                    openTimedMsgPanel(tlk);
+                }
+            });
+        } catch (Exception e) { log("[Timed] save error: " + e.toString()); toast("保存失败"); }
+    })
+    btnRow.addView(saveBtn)
+    
+    root.addView(btnRow)
+    
+    editor.setContentView(root)
+    var ew = editor.getWindow()
+    if (ew != null) {
+        ew.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bgColor))
+        ew.setLayout((int)(screenWidth * 0.85), -2)
+        ew.setGravity(android.view.Gravity.CENTER)
+    }
+    editor.setCanceledOnTouchOutside(true)
+    editor.show()
 }
